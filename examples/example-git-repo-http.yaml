@@ -1,0 +1,6 @@
+url: https://github.com/chrishiestand/delme.git
+branch: master
+webhook_secret: abc
+webhook_secret_required: false
+username: chrishiestand
+password_token: 414887dd4851f7b8e624724dd201f3b76e0799ae

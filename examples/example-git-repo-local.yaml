@@ -1,0 +1,7 @@
+# Not implemented
+# This would be stored in a secret's key
+#url: /tmp/repo automatically transformed to file:///tmp/repo
+url: file:///tmp/repo
+branch: master
+watch: true
+# poll_seconds: 60

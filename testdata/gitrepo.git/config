@@ -1,0 +1,8 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = /Users/dimmer/golang/src/github.com/chrishiestand/github-webhook-sync/testdata/delme

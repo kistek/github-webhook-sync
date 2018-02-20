@@ -3,4 +3,4 @@ branch: master
 webhook_secret: abc
 webhook_secret_required: false
 username: chrishiestand
-password_token: 414887dd4851f7b8e624724dd201f3b76e0799ae
+password_token: 3e14b87c326594c09250ed82185f4bb7fb9b577c

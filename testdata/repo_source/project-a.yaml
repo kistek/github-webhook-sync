@@ -1,0 +1,6 @@
+url: https://github.com/org/reponame.git
+branch: master
+webhook_secret: invalid1
+# webhook_secret_required: true
+username: username
+password_token: invalid2

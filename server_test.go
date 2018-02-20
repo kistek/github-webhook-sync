@@ -71,8 +71,8 @@ func TestWebhookHandler(t *testing.T) {
 	// X-Hub-Signature: sha1=24985b34e3bfe4c49a1ba846c090bddd30552905
 
 	pushFixture := "testdata/example-firstpush.json"
+	fixtureSourcePath := "testdata/repo_source"
 	pushSha1 := "c18ad04687e0f9651d473212ab8fa8d6643f7c58"
-	keys := []string{"snakeoil"}
 	repoRootPath := "/tmp/"
 
 	pushJSON, err := ioutil.ReadFile(pushFixture)
@@ -103,8 +103,13 @@ func TestWebhookHandler(t *testing.T) {
 	req.Header.Set("X-GitHub-Event", "push")
 	req.Header.Set("X-Hub-Signature", "sha1="+pushSha1)
 
-	//http.ResponseWriter, *http.Request
-	webhookHandler(keys, repoRootPath)(w, req)
+	rts, err2 := ConfigPathToRepoTracks(fixtureSourcePath)
+
+	if err2 != nil {
+		t.Fatalf("could not read repo metadata from path: %s\n%v", fixtureSourcePath, err2)
+	}
+
+	webhookHandler(rts, repoRootPath)(w, req)
 	resp := w.Result()
 
 	if resp.StatusCode != http.StatusOK {
@@ -123,6 +128,7 @@ func TestWebhookHandler(t *testing.T) {
 func TestWebhookHandlerInvalidContentType(t *testing.T) {
 
 	pushFixture := "testdata/example-push.json"
+	fixtureSourcePath := "testdata/repo_source"
 
 	pushJSON, err := ioutil.ReadFile(pushFixture)
 	if err != nil {
@@ -139,11 +145,15 @@ func TestWebhookHandlerInvalidContentType(t *testing.T) {
 	req.Header.Set("X-GitHub-Event", "push")
 	req.Header.Set("X-Hub-Signature", "sha1=24985b34e3bfe4c49a1ba846c090bddd30552905")
 
-	keys := []string{"a", "b", "c", "d"}
 	repoRootPath := "/tmp/"
 
-	//http.ResponseWriter, *http.Request
-	webhookHandler(keys, repoRootPath)(w, req)
+	rts, err := ConfigPathToRepoTracks(fixtureSourcePath)
+
+	if err != nil {
+		t.Fatalf("could not read repo metadata from path: %s", fixtureSourcePath)
+	}
+
+	webhookHandler(rts, repoRootPath)(w, req)
 	resp := w.Result()
 
 	if resp.StatusCode != http.StatusBadRequest {

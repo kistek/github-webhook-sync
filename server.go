@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,11 +8,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
+	"github.com/chrishiestand/github-webhook-sync/repotrack"
 	"github.com/chrishiestand/github-webhook-sync/webhook"
 	"github.com/joho/godotenv"
 	"golang.org/x/sys/unix"
+	yaml "gopkg.in/yaml.v2"
 )
 
 //When you create a new webhook, we'll send you a simple ping event to let you know you've set up the webhook correctly. This event isn't stored so it isn't retrievable via the Events API. You can trigger a ping again by calling the ping endpoint.
@@ -53,24 +53,24 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	repoRootPath := os.Getenv("REPO_ROOT_PATH")
-	endpointPath := os.Getenv("ENDPOINT_PATH")
+	repoSourcePath := os.Getenv("REPO_SOURCE_PATH")
+	repoTargetPath := os.Getenv("REPO_TARGET_PATH")
 	port := os.Getenv("PORT")
-	keysString := os.Getenv("KEYS")
 
-	if keysString == "" {
-		log.Fatal("keys are currently required via KEYS env var")
+	rts, err := ConfigPathToRepoTracks(repoSourcePath)
+
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	keys := strings.Split(keysString, ";")
-
-	start(port, endpointPath, keys, repoRootPath)
+	start(port, rts, repoTargetPath)
 }
 
-func start(port string, endpointPath string, keys []string, repoRootPath string) {
+func start(port string, rts []repotrack.RepoTrack, repoRootPath string) {
 
 	mainMux := http.NewServeMux()
-	mainMux.HandleFunc("/", webhookHandler(keys, repoRootPath))
+
+	mainMux.HandleFunc("/webhook", webhookHandler(rts, repoRootPath)) // TODO allow main path to be configurable
 	mainMux.HandleFunc("/_ready", readyHandler(repoRootPath))
 	mainMux.HandleFunc("/_alive", aliveHandler())
 
@@ -81,7 +81,9 @@ func start(port string, endpointPath string, keys []string, repoRootPath string)
 	}
 }
 
-func webhookHandler(keys []string, repoRootPath string) func(http.ResponseWriter, *http.Request) {
+func webhookHandler(rts []repotrack.RepoTrack, repoRootPath string) func(http.ResponseWriter, *http.Request) {
+
+	var keys = []string{"TO", "DO"}
 
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -121,14 +123,13 @@ func webhookHandler(keys []string, repoRootPath string) func(http.ResponseWriter
 
 		log.Println(fmt.Sprintf("webhook: %s", wh))
 
-		repoName := wh.Repository.Name
-		log.Println(fmt.Sprintf("blah request %s %s\ncontent-type: %s, repo name: %s", req.Method, req.URL.Path, req.Header.Get("content-type"), repoName))
-
 		signatureHeader := req.Header.Get("X-Hub-Signature")
 		signature := strings.Split(signatureHeader, "=")[1]
 		computedSignatures := make([]string, 0, len(keys))
 
-		if verifyHubSignature(signature, body, keys, &computedSignatures) != true {
+		log.Println(fmt.Sprintf("blah request %s %s\ncontent-type: %s, repo name: %s", req.Method, req.URL.Path, req.Header.Get("content-type"), wh.Repository.FullName))
+
+		if verifyHubSignature(signature, body, wh.Repository, &rts, &computedSignatures) != true {
 			log.Println(fmt.Sprintf("invalid signature hash %s, computed signatures:\n%s", signatureHeader, strings.Join(computedSignatures, "\n")))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -163,43 +164,99 @@ func aliveHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func verifyHubSignature(signature string, body []byte, keys []string, computedSignatures *[]string) bool {
+func verifyHubSignature(signature string, bodyBytes []byte, whr webhook.Repository, rts *[]repotrack.RepoTrack, computedSignatures *[]string) bool {
 
 	// TODO in order to allow no signatures we must be able to map repositories to known-valid keys, otherwise anyone could push to a secured repo. So this requires app specific configuration files instead of .env for this data.
 	// webhooks not configured with a secret will not contain a signature
 	// if signature == "" {
 	// 	return true
 	// }
+	//
+	//
+	rt := repotrack.NewRepoTrack()
 
-	keyBytes := make([][]byte, 0)
-
-	for _, str := range keys {
-		key := []byte(str)
-		keyBytes = append(keyBytes, key)
-
+	for _, testRt := range *rts {
+		if testRt.URL == whr.HTTPURL || testRt.URL == whr.SSHURL {
+			rt = testRt
+		}
 	}
 
-	signatureBytes, err := hex.DecodeString(signature)
-
-	if err != nil {
-		log.Println("got bad signature: " + signature)
+	if rt.URL == "" {
+		// could not find a matching repository
+		log.Printf("Could not find matching repository for webhook: %v", whr)
 		return false
 	}
 
-	for _, key := range keyBytes {
+	if rt.WebhookSecretRequired == false {
+		return true
+	}
 
-		mac := hmac.New(sha1.New, key)
-		mac.Write(body)
-		computedMac := mac.Sum(nil)
-		match := hmac.Equal(signatureBytes, computedMac)
+	return false
+	// keyBytes := make([][]byte, 0)
+	//
+	// for _, str := range keys {
+	// 	key := []byte(str)
+	// 	keyBytes = append(keyBytes, key)
+	//
+	// }
+	//
+	// signatureBytes, err := hex.DecodeString(signature)
+	//
+	// if err != nil {
+	// 	log.Println("got bad signature: " + signature)
+	// 	return false
+	// }
+	//
+	// for _, key := range keyBytes {
+	//
+	// 	mac := hmac.New(sha1.New, key)
+	// 	mac.Write(bodyBytes)
+	// 	computedMac := mac.Sum(nil)
+	// 	match := hmac.Equal(signatureBytes, computedMac)
+	//
+	// 	log.Printf("computedMac: %v ", hex.EncodeToString(computedMac))
+	// 	*computedSignatures = append(*computedSignatures, hex.EncodeToString(computedMac))
+	//
+	// 	if match == true {
+	// 		return true
+	// 	}
+	//
+	// }
+	// return false
+}
 
-		log.Printf("computedMac: %v ", hex.EncodeToString(computedMac))
-		*computedSignatures = append(*computedSignatures, hex.EncodeToString(computedMac))
+// TODO add a config path watch function
+// ConfigPathToRepoTracks reads repo metadata from folder and converts each file into a struct
+func ConfigPathToRepoTracks(repoSourcePath string) ([]repotrack.RepoTrack, error) {
+	repoFiles, err := ioutil.ReadDir(repoSourcePath)
 
-		if match == true {
-			return true
+	if err != nil {
+		return nil, err
+	}
+
+	rts := make([]repotrack.RepoTrack, 0)
+
+	for _, file := range repoFiles {
+		filename := file.Name()
+		repoPath := path.Join(repoSourcePath, filename)
+		fmt.Println("filename: " + filename)
+
+		content, err := ioutil.ReadFile(repoPath)
+		if err != nil {
+			return nil, err
 		}
 
+		rt := repotrack.NewRepoTrack()
+
+		err2 := yaml.Unmarshal(content, &rt)
+		if err2 != nil {
+			return nil, err2
+		}
+
+		// TODO
+		// rt.Populate()
+		fmt.Println("RT: ", rt)
 	}
-	return false
+
+	return rts, nil
 }

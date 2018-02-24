@@ -70,8 +70,8 @@ func TestWebhookHandler(t *testing.T) {
 	// X-GitHub-Event: push
 	// X-Hub-Signature: sha1=24985b34e3bfe4c49a1ba846c090bddd30552905
 
-	pushFixture := "testdata/example-firstpush.json"
-	fixtureSourcePath := "testdata/repo_source"
+	pushFixture := "../../testdata/example-firstpush.json"
+	fixtureSourcePath := "../../testdata/repo_source"
 	pushSha1 := "c18ad04687e0f9651d473212ab8fa8d6643f7c58"
 	repoRootPath := "/tmp/"
 
@@ -127,8 +127,8 @@ func TestWebhookHandler(t *testing.T) {
 
 func TestWebhookHandlerInvalidContentType(t *testing.T) {
 
-	pushFixture := "testdata/example-push.json"
-	fixtureSourcePath := "testdata/repo_source"
+	pushFixture := "../../testdata/example-push.json"
+	fixtureSourcePath := "../../testdata/repo_source"
 
 	pushJSON, err := ioutil.ReadFile(pushFixture)
 	if err != nil {

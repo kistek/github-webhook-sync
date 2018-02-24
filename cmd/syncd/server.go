@@ -11,8 +11,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/chrishiestand/github-webhook-sync/repotrack"
-	"github.com/chrishiestand/github-webhook-sync/webhook"
+	"github.com/chrishiestand/github-webhook-sync/internal/repotrack"
+	"github.com/chrishiestand/github-webhook-sync/internal/webhook"
 	"github.com/joho/godotenv"
 	"golang.org/x/sys/unix"
 	yaml "gopkg.in/yaml.v2"
@@ -183,7 +183,7 @@ func verifyHubSignature(signature string, bodyBytes []byte, whr webhook.Reposito
 
 	if rt.URL == "" {
 		// could not find a matching repository
-		log.Printf("Could not find matching repository for webhook: %v", whr)
+		log.Printf("Could not find matching repository for webhook: %v")
 		return false
 	}
 

@@ -183,7 +183,7 @@ func verifyHubSignature(signature string, bodyBytes []byte, whr webhook.Reposito
 
 	if rt.URL == "" {
 		// could not find a matching repository
-		log.Printf("Could not find matching repository for webhook: %v")
+		// log.Printf("Could not find matching repository for webhook: %v")
 		return false
 	}
 
@@ -253,9 +253,7 @@ func ConfigPathToRepoTracks(repoSourcePath string) ([]repotrack.RepoTrack, error
 			return nil, err2
 		}
 
-		// TODO
-		// rt.Populate()
-		fmt.Println("RT: ", rt)
+		rt = repotrack.Populate(rt)
 	}
 
 	return rts, nil

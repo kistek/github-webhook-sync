@@ -66,7 +66,7 @@ func main() {
 	start(port, rts, repoTargetPath)
 }
 
-func start(port string, rts []repotrack.RepoTrack, repoRootPath string) {
+func start(port string, rts []*repotrack.RepoTrack, repoRootPath string) {
 
 	mainMux := http.NewServeMux()
 
@@ -81,7 +81,7 @@ func start(port string, rts []repotrack.RepoTrack, repoRootPath string) {
 	}
 }
 
-func webhookHandler(rts []repotrack.RepoTrack, repoRootPath string) func(http.ResponseWriter, *http.Request) {
+func webhookHandler(rts []*repotrack.RepoTrack, repoRootPath string) func(http.ResponseWriter, *http.Request) {
 
 	var keys = []string{"TO", "DO"}
 
@@ -164,7 +164,7 @@ func aliveHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func verifyHubSignature(signature string, bodyBytes []byte, whr webhook.Repository, rts *[]repotrack.RepoTrack, computedSignatures *[]string) bool {
+func verifyHubSignature(signature string, bodyBytes []byte, whr webhook.Repository, rts *[]*repotrack.RepoTrack, computedSignatures *[]string) bool {
 
 	// TODO in order to allow no signatures we must be able to map repositories to known-valid keys, otherwise anyone could push to a secured repo. So this requires app specific configuration files instead of .env for this data.
 	// webhooks not configured with a secret will not contain a signature
@@ -227,14 +227,14 @@ func verifyHubSignature(signature string, bodyBytes []byte, whr webhook.Reposito
 
 // TODO add a config path watch function
 // ConfigPathToRepoTracks reads repo metadata from folder and converts each file into a struct
-func ConfigPathToRepoTracks(repoSourcePath string) ([]repotrack.RepoTrack, error) {
+func ConfigPathToRepoTracks(repoSourcePath string) ([]*repotrack.RepoTrack, error) {
 	repoFiles, err := ioutil.ReadDir(repoSourcePath)
 
 	if err != nil {
 		return nil, err
 	}
 
-	rts := make([]repotrack.RepoTrack, 0)
+	rts := make([]*repotrack.RepoTrack, 0)
 
 	for _, file := range repoFiles {
 		filename := file.Name()
@@ -253,7 +253,7 @@ func ConfigPathToRepoTracks(repoSourcePath string) ([]repotrack.RepoTrack, error
 			return nil, err2
 		}
 
-		rt = repotrack.Populate(rt)
+		repotrack.Populate(rt)
 	}
 
 	return rts, nil

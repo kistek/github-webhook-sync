@@ -12,7 +12,7 @@ func TestPopulate(t *testing.T) {
 
 	rt := NewRepoTrack()
 	rt.URL = fmt.Sprintf("%s://github.com/chrishiestand/%s.git", protocol, repoName)
-	rt = Populate(rt)
+	Populate(rt)
 
 	if rt.Protocol != protocol {
 		t.Fatalf("repotrack.Populate() did not return correct protocol, expected '%s' got '%s'", protocol, rt.Protocol)

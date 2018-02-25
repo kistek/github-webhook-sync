@@ -21,16 +21,16 @@ type RepoTrack struct {
 }
 
 // NewRepoTrack returns a RepoTrack struct with default values
-func NewRepoTrack() RepoTrack {
+func NewRepoTrack() *RepoTrack {
 
 	var rt RepoTrack
 	rt.WebhookSecretRequired = true
-	return rt
+	return &rt
 }
 
 // Populate RepoTrack struct with metadata from other fields
 // TODO should this validate and also return error?
-func Populate(r RepoTrack) RepoTrack {
+func Populate(r *RepoTrack) {
 
 	pathParts := strings.Split(r.URL, "/")
 	tail := pathParts[len(pathParts)-1]
@@ -40,8 +40,6 @@ func Populate(r RepoTrack) RepoTrack {
 
 	r.Name = nameParts[0]
 	r.Protocol = protocolParts[0]
-
-	return r
 }
 
 func (r RepoTrack) String() string {

@@ -11,9 +11,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/chrishiestand/github-webhook-sync/internal/repotrack"
-	"github.com/chrishiestand/github-webhook-sync/internal/webhook"
 	"github.com/joho/godotenv"
+	"github.com/kistek/github-webhook-sync/internal/repotrack"
+	"github.com/kistek/github-webhook-sync/internal/webhook"
 	"golang.org/x/sys/unix"
 	yaml "gopkg.in/yaml.v2"
 )
